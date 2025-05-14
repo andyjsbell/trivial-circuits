@@ -1,5 +1,5 @@
 [package]
-name = "simple-arkworks"
+name = "trivial-circuits"
 version = "0.1.0"
 edition = "2021"
 

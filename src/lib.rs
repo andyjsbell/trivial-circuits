@@ -16,7 +16,7 @@
 //! 
 //! ```rust
 //! // Sum Circuit example
-//! use simple_arkworks::circuits::sum::SumCircuit;
+//! use trivial_circuits::circuits::sum::SumCircuit;
 //! use ark_bn254::Fr;
 //! 
 //! let circuit = SumCircuit::<Fr> {
