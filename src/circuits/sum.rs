@@ -1,30 +1,11 @@
 //! # Sum Circuit
-//! 
-//! This module implements a zero-knowledge proof circuit that proves knowledge of two private 
+//!
+//! This module implements a zero-knowledge proof circuit that proves knowledge of two private
 //! values that sum to a public value.
 //!
 //! The circuit takes two private inputs `a` and `b`, and a public output `c`, and proves that
 //! `a + b = c` without revealing the values of `a` and `b`.
 //!
-//! ## Example
-//!
-//! ```rust
-//! use ark_bn254::Fr;
-//! use ark_groth16::Groth16;
-//! use ark_snark::SNARK;
-//! use rand::thread_rng;
-//!
-//! let circuit = SumCircuit {
-//!     a: Some(10.into()),
-//!     b: Some(32.into()),
-//!     c: Some(42.into()),
-//! };
-//!
-//! // Generate proof that 10 + 32 = 42 without revealing 10 and 32
-//! let rng = &mut thread_rng();
-//! let (pk, vk) = Groth16::<Bn254>::circuit_specific_setup(circuit.clone(), rng).unwrap();
-//! let proof = Groth16::<Bn254>::prove(&pk, circuit, rng).expect("proof");
-//! ```
 
 use ark_ff::PrimeField;
 use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
@@ -49,7 +30,7 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for SumCircuit<F> {
     /// Generates constraints for the sum circuit.
     ///
     /// This function creates the constraint system that enforces the relationship
-    /// `a + b = c`. It allocates variables for the private inputs `a` and `b` 
+    /// `a + b = c`. It allocates variables for the private inputs `a` and `b`
     /// as witnesses, and the public output `c` as an input.
     ///
     /// # Arguments
@@ -133,7 +114,7 @@ mod tests {
     fn prove_verify_bad_sum() {
         let c = 42;
         let a = 10;
-        let b = 31;  // Note: 10 + 31 = 41, not 42
+        let b = 31; // Note: 10 + 31 = 41, not 42
 
         let circuit = SumCircuit {
             a: Some(a.into()),

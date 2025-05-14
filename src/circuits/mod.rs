@@ -1,5 +1,5 @@
 //! # Zero-Knowledge Proof Circuits
-//! 
+//!
 //! This module contains implementations of different zero-knowledge proof circuits
 //! using the arkworks libraries.
 //!

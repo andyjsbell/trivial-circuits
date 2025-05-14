@@ -1,35 +1,11 @@
 //! # Compare Circuit
-//! 
+//!
 //! This module implements a zero-knowledge proof circuit that proves a longer string
 //! starts with a specified shorter string.
 //!
 //! The circuit takes a public shorter string and a private longer string, and proves that
 //! the longer string starts with the shorter string without revealing the entire longer string.
 //!
-//! ## Example
-//!
-//! ```rust
-//! use ark_bn254::Fr;
-//! use ark_groth16::Groth16;
-//! use ark_snark::SNARK;
-//! use rand::thread_rng;
-//!
-//! // Convert strings to field elements
-//! let small = "abc";
-//! let large = "abcdef";
-//! let larger_array: PrimeString<Fr> = large.into();
-//! let shorter_array: PrimeString<Fr> = small.into();
-//!
-//! let circuit = CompareCircuit {
-//!     larger: Some(larger_array.into()),
-//!     shorter: Some(shorter_array.into()),
-//! };
-//!
-//! // Generate proof that longer string starts with shorter string
-//! let rng = &mut thread_rng();
-//! let (pk, vk) = Groth16::<Bn254>::circuit_specific_setup(circuit.clone(), rng).unwrap();
-//! let proof = Groth16::<Bn254>::prove(&pk, circuit, rng).expect("proof");
-//! ```
 
 use ark_ff::PrimeField;
 use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
