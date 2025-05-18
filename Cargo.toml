@@ -3,6 +3,9 @@ name = "trivial-circuits"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["staticlib"]
+
 [dependencies]
 ark-std = "0.4"
 ark-ff = "0.4"
@@ -12,3 +15,4 @@ ark-groth16 = "0.4"
 ark-bn254 = "0.4"
 ark-snark = "0.4"
 rand = "0.8"
+ark-serialize = "0.4"

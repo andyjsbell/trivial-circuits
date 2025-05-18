@@ -30,3 +30,4 @@
 
 /// Circuits module contains implementations of different zero-knowledge proof circuits
 pub mod circuits;
+pub mod exports;
