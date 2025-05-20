@@ -1,4 +1,4 @@
-use crate::circuits::sum::{self, TrySerializer};
+use crate::circuits::sum::SumCircuit;
 use std::os::raw::{c_int, c_uchar};
 use std::{mem, slice};
 
@@ -34,18 +34,21 @@ pub unsafe extern "C" fn generate_proof_for_sum(
     out_len: *mut c_int,
 ) -> *mut c_uchar {
     let pk = convert_to_vec(pk, pk_length);
-    if let Ok(pk) = sum::from_bytes(pk) {
-        if let Ok(proof) = sum::generate_proof(pk, a, b, c) {
-            if let Ok(mut proof) = proof.as_ref().try_to_bytes() {
+    if let Ok(pk) = crate::circuits::groth16::from_bytes(pk) {
+        if let Ok(proof) = crate::circuits::groth16::generate_proof(
+            pk,
+            SumCircuit::new(Some(a.into()), Some(b.into()), Some(c.into())),
+        ) {
+            if let Ok(mut proof_bytes) =
+                crate::circuits::groth16::TrySerializer::try_to_bytes(proof.as_ref())
+            {
                 if !out_len.is_null() {
-                    unsafe {
-                        *out_len = proof.len() as c_int;
-                    }
+                    *out_len = proof_bytes.len() as c_int;
                 }
 
-                let ptr = proof.as_mut_ptr();
+                let ptr = proof_bytes.as_mut_ptr();
 
-                mem::forget(proof);
+                mem::forget(proof_bytes);
 
                 return ptr as *mut c_uchar;
             }
@@ -76,6 +79,8 @@ pub unsafe extern "C" fn free_bytes(ptr: *mut c_uchar, len: c_int, capacity: c_i
 
 #[cfg(test)]
 mod tests {
+    use crate::circuits::groth16::TrySerializer;
+
     use super::*;
 
     fn convert_to_c(v: Vec<u8>) -> (*mut c_uchar, usize) {
@@ -90,7 +95,8 @@ mod tests {
 
     #[test]
     fn test_ffi_sum() {
-        let (pk, _) = sum::setup().expect("setup of keys");
+        let (pk, _) =
+            crate::circuits::groth16::setup(SumCircuit::default()).expect("setup of keys");
         let mut out_len: c_int = 0;
         let out_len = &mut out_len;
         let pk = pk.try_to_bytes().expect("serialisation");

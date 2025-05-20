@@ -16,7 +16,7 @@ use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisE
 ///
 /// This struct wraps a vector of field elements, where each element
 /// represents a character in the original string.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct PrimeString<F: PrimeField>(Vec<F>);
 impl<F: PrimeField> From<&'static str> for PrimeString<F> {
     /// Converts a string to a vector of field elements.
@@ -110,11 +110,10 @@ mod tests {
     //! Tests for the Compare Circuit.
     //!
     //! These tests demonstrate how to create, prove, and verify a compare circuit.
+    use crate::circuits::groth16::{generate_proof, setup, verify_proof};
+
     use super::{CompareCircuit, PrimeString};
-    use ark_bn254::{Bn254, Fr};
-    use ark_groth16::Groth16;
-    use ark_snark::SNARK;
-    use rand::thread_rng;
+    use ark_bn254::Fr;
 
     /// Test that we can prove and verify that "abcdef" starts with "abc".
     ///
@@ -135,12 +134,9 @@ mod tests {
             shorter: Some(shorter_array.clone().into()),
         };
 
-        let rng = &mut thread_rng();
-
-        let (pk, vk) = Groth16::<Bn254>::circuit_specific_setup(circuit.clone(), rng).unwrap();
-        let proof = Groth16::<Bn254>::prove(&pk, circuit, rng).expect("proof");
-        let verified = Groth16::<Bn254>::verify(&vk, &Vec::<Fr>::from(shorter_array), &proof)
-            .expect("verified");
+        let (pk, vk) = setup(circuit.clone()).expect("keys created");
+        let proof = generate_proof(pk, circuit).expect("proof generated");
+        let verified = verify_proof(vk, &Vec::<Fr>::from(shorter_array), proof).expect("verified");
 
         assert!(verified, "this can't be verified");
     }

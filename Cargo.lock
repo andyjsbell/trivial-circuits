@@ -587,6 +587,7 @@ name = "trivial-circuits"
 version = "0.1.0"
 dependencies = [
  "ark-bn254",
+ "ark-ec",
  "ark-ff",
  "ark-groth16",
  "ark-r1cs-std",

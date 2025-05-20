@@ -7,21 +7,16 @@
 //! `a + b = c` without revealing the values of `a` and `b`.
 //!
 
-use ark_bn254::Bn254;
 use ark_ff::PrimeField;
-use ark_groth16::{Groth16, Proof, ProvingKey, VerifyingKey};
 use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_snark::SNARK;
-use rand::thread_rng;
 
 /// A circuit that proves knowledge of two values that sum to a public value.
 ///
 /// The prover demonstrates knowledge of private inputs `a` and `b` such that `a + b = c`,
 /// where `c` is public. This circuit uses the R1CS (Rank-1 Constraint System) to enforce
 /// this relationship.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct SumCircuit<F: PrimeField> {
     /// First private value in the sum
     pub a: Option<F>,
@@ -29,6 +24,16 @@ pub struct SumCircuit<F: PrimeField> {
     pub b: Option<F>,
     /// Public result of the sum (a + b)
     pub c: Option<F>,
+}
+
+impl SumCircuit<ark_bn254::Fr> {
+    pub fn new(
+        a: Option<ark_bn254::Fr>,
+        b: Option<ark_bn254::Fr>,
+        c: Option<ark_bn254::Fr>,
+    ) -> Self {
+        Self { a, b, c }
+    }
 }
 
 impl<F: PrimeField> ConstraintSynthesizer<F> for SumCircuit<F> {
@@ -69,73 +74,13 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for SumCircuit<F> {
     }
 }
 
-pub fn setup() -> Result<(ProvingKey<Bn254>, VerifyingKey<Bn254>), String> {
-    Groth16::<Bn254>::circuit_specific_setup(
-        SumCircuit {
-            a: None,
-            b: None,
-            c: None,
-        },
-        &mut thread_rng(),
-    )
-    .map_err(|e| e.to_string())
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct SumProof(pub Proof<Bn254>);
-
-impl AsRef<Proof<Bn254>> for SumProof {
-    fn as_ref(&self) -> &Proof<Bn254> {
-        &self.0
-    }
-}
-
-impl From<Proof<Bn254>> for SumProof {
-    fn from(proof: Proof<Bn254>) -> Self {
-        SumProof(proof)
-    }
-}
-
-pub trait TrySerializer {
-    fn try_to_bytes(&self) -> Result<Vec<u8>, String>;
-}
-
-impl<T> TrySerializer for T
-where
-    T: CanonicalSerialize,
-{
-    fn try_to_bytes(&self) -> Result<Vec<u8>, String> {
-        let mut bytes = Vec::<u8>::new();
-        self.serialize_uncompressed(&mut bytes)
-            .map_err(|e| e.to_string())?;
-        Ok(bytes)
-    }
-}
-
-pub fn from_bytes<T: CanonicalDeserialize>(bytes: Vec<u8>) -> Result<T, String> {
-    T::deserialize_uncompressed(bytes.as_slice()).map_err(|e| e.to_string())
-}
-
-pub fn generate_proof(pk: ProvingKey<Bn254>, a: u32, b: u32, c: u32) -> Result<SumProof, String> {
-    Ok(Groth16::<Bn254>::prove(
-        &pk,
-        SumCircuit {
-            a: Some(a.into()),
-            b: Some(b.into()),
-            c: Some(c.into()),
-        },
-        &mut thread_rng(),
-    )
-    .map_err(|e| e.to_string())?
-    .into())
-}
-
 #[cfg(test)]
 mod tests {
     //! Tests for the Sum Circuit.
     //!
     //! These tests demonstrate how to create, prove, and verify a sum circuit.
     use super::*;
+    use crate::circuits::groth16::{generate_proof, setup, verify_proof};
 
     /// Test that we can prove and verify that 10 + 32 = 42.
     ///
@@ -146,16 +91,16 @@ mod tests {
     /// 4. Verifies the proof using the verification key and public input c
     #[test]
     fn prove_verify_sum() {
-        let c = 42;
-        let a = 10;
-        let b = 32;
+        let (pk, vk) = setup(SumCircuit::default()).expect("keys created");
 
-        let (pk, vk) = setup().expect("keys created");
-        let proof = generate_proof(pk, a, b, c).expect("proof created");
+        let proof = generate_proof(
+            pk,
+            SumCircuit::new(Some(10.into()), Some(32.into()), Some(42.into())),
+        )
+        .expect("proof created");
 
-        let public_input = [c.into()];
-        let verified =
-            Groth16::<Bn254>::verify(&vk, &public_input, proof.as_ref()).expect("verified");
+        let public_input = [42.into()];
+        let verified = verify_proof(vk, &public_input, proof).expect("proof is verified");
 
         assert!(verified, "this can't be verified");
     }
@@ -168,18 +113,10 @@ mod tests {
     #[test]
     #[should_panic(expected = "assertion failed: cs.is_satisfied().unwrap()")]
     fn prove_verify_bad_sum() {
-        let c = 42;
-        let a = 10;
-        let b = 31; // Note: 10 + 31 = 41, not 42
-
-        let circuit = SumCircuit {
-            a: Some(a.into()),
-            b: Some(b.into()),
-            c: Some(c.into()),
-        };
-        let rng = &mut thread_rng();
-
-        let (pk, _) = setup().expect("keys created");
-        let _ = Groth16::<Bn254>::prove(&pk, circuit, rng);
+        let (pk, _) = setup(SumCircuit::default()).expect("keys created");
+        let _ = generate_proof(
+            pk,
+            SumCircuit::new(Some(10.into()), Some(31.into()), Some(42.into())),
+        );
     }
 }

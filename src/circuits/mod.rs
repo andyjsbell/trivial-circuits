@@ -10,5 +10,6 @@
 
 /// Circuit for string prefix comparison proofs
 pub mod compare;
+pub mod groth16;
 /// Circuit for sum relationship proofs
 pub mod sum;
